@@ -1,68 +1,98 @@
----
+# BugHound
 
-## 📝 Assignment Reflection
-
-### Part 1: Agentic Workflow
-
-BugHound follows a simple loop:
-plan → analyze → fix → assess risk → decide whether to apply.
-
-- Problems are found in `analyze()`  
-- Fixes are created in `propose_fix()`  
-- Safety is checked in `risk_assessor.py`  
-- If something goes wrong, it falls back to heuristics  
-
-One issue I noticed was that in heuristic mode it still said it was using the LLM, then fell back. This was misleading and showed the system wasn’t correctly separating offline and AI modes.
+A small, agent-style debugging tool. It looks at Python code, suggests fixes, and decides if those fixes are safe enough to apply.
 
 ---
+
+## What It Does
+
+Given a Python snippet, BugHound:
+
+1. **Analyzes the code** — uses heuristics in offline mode, or Gemini if enabled
+2. **Proposes a fix** — tries to keep changes minimal
+3. **Checks risk** — scores how safe the fix is and flags risky changes
+4. **Decides what to do** — auto-applies if safe, otherwise leaves it for a human
+5. **Shows results** — issues found, fixed code, diff, and agent trace
+
+---
+
+## Setup
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+## Running
+
+```bash
+streamlit run bughound_app.py
+```
+
+**Modes:**
+
+- **Heuristic only** — no API needed
+- **Gemini** — requires an API key in `.env`:
+
+```
+GEMINI_API_KEY=your_key_here
+```
+
+## Tests
+
+```bash
+pytest
+```
+
+All tests should pass.
+
+---
+
+## Assignment Reflection
+
+### Part 1: Workflow
+
+BugHound follows a fixed loop: `plan → analyze → fix → check risk → decide`
+
+- `analyze()` finds issues
+- `propose_fix()` makes changes
+- `risk_assessor` checks safety
+
+One issue I noticed was that heuristic mode still logged that it was using the LLM before falling back. That was confusing and incorrect.
 
 ### Part 2: AI Integration
 
-When using Gemini mode, the system attempted to use the AI, but the output wasn’t always usable. The analyzer sometimes returned invalid JSON and the fixer sometimes returned empty output, so the system had to fall back to heuristics.
-
-To improve this, I modified `_can_call_llm()` so that `MockClient` is not treated as a real LLM. This made heuristic mode behave correctly and removed fake fallback behavior.
-
----
+In Gemini mode, the AI didn't always return valid JSON — sometimes the output was empty or malformed, so the system had to fall back to heuristics. I fixed this by updating `_can_call_llm()` so `MockClient` is no longer treated as a real LLM. This made heuristic mode behave correctly and removed the fake fallback logs.
 
 ### Part 3: Risk Assessment Change
 
-I added a rule to penalize fixes that introduce new imports.
-
-This matters because adding imports changes dependencies and behavior, even if the fix looks small.
-
-After this change, the risk score decreased (from 30 to 20 in testing), making the system more cautious about auto-applying fixes.
-
----
+I added a rule to penalize fixes that introduce new imports. Imports change dependencies and behavior, so they shouldn't be treated as low-risk. After this change, the risk score dropped from 30 to 20, making the system more cautious.
 
 ### Part 4: Guardrails and Testing
 
-One failure mode was that the system didn’t treat new imports as risky.
+The system didn't treat new imports as risky before. I added a guardrail in the risk assessment logic to reduce the score when imports are added, then wrote a test to verify:
 
-I added a guardrail in the risk assessment logic to reduce the score when new imports are introduced.
+- the score decreases
+- the correct reason appears in the output
 
-I also added a test to confirm:
-- the score decreases when imports are added  
-- the correct reason appears  
+I also updated an existing test because after fixing `_can_call_llm()`, the system no longer logs fake LLM fallback behavior.
 
-I updated an existing test as well because after fixing `_can_call_llm()`, the system no longer logs fake LLM fallback behavior.
-
-All tests passed after these changes.
-
----
+All tests passed.
 
 ### Part 5: Reflection
 
-Heuristic mode was more reliable and predictable.
+Heuristic mode was more reliable and consistent. Gemini mode had potential but was less stable — outputs were sometimes invalid.
 
-Gemini mode had potential but was less stable because the outputs were sometimes malformed or incomplete.
+The system should **not** auto-fix when:
 
-The system should defer to humans when:
-- risk is high  
-- behavior changes  
-- new imports are added  
+- risk is high
+- behavior changes
+- new imports are added
 
-The most useful improvements were:
-- fixing LLM detection so MockClient isn’t treated like a real AI  
-- adding a rule to penalize new imports  
+Main improvements made:
 
-These changes made the system more consistent and safer.
+- fixed LLM detection
+- added import risk rule
+
+Overall the system is more consistent and safer than before.
