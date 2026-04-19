@@ -61,7 +61,20 @@ def assess_risk(
         # This is usually good, but still risky.
         score -= 5
         reasons.append("Bare except was modified, verify correctness.")
+    original_imports = {
+        line.strip()
+        for line in original_lines
+        if line.strip().startswith("import ") or line.strip().startswith("from ")
+    }
+    fixed_imports = {
+        line.strip()
+        for line in fixed_lines
+        if line.strip().startswith("import ") or line.strip().startswith("from ")
+    }
 
+    if fixed_imports - original_imports:
+        score -= 10
+        reasons.append("New imports were introduced, verify dependency and behavior changes.")
     # ----------------------------
     # Clamp score
     # ----------------------------

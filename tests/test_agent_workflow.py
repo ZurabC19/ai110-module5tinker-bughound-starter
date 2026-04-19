@@ -38,12 +38,11 @@ def test_offline_mode_proposes_logging_fix_for_print():
     assert "logging.info(" in fixed
 
 
-def test_mock_client_forces_llm_fallback_to_heuristics_for_analysis():
-    # MockClient returns non-JSON for analyzer prompts, so agent should fall back.
+def test_mock_client_uses_offline_path_without_fake_llm_fallback():
     agent = BugHoundAgent(client=MockClient())
     code = "def f():\n    print('hi')\n    return True\n"
     result = agent.run(code)
 
     assert any(issue.get("type") == "Code Quality" for issue in result["issues"])
-    # Ensure we logged the fallback path
-    assert any("Falling back to heuristics" in entry.get("message", "") for entry in result["logs"])
+    assert any("Using heuristic analyzer (offline mode)." in entry.get("message", "") for entry in result["logs"])
+    assert not any("Falling back to heuristics" in entry.get("message", "") for entry in result["logs"])

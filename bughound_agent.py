@@ -227,7 +227,11 @@ class BugHoundAgent:
         return text
 
     def _can_call_llm(self) -> bool:
-        return self.client is not None and hasattr(self.client, "complete")
+        return (
+            self.client is not None
+            and hasattr(self.client, "complete")
+            and self.client.__class__.__name__ != "MockClient"
+    )
 
     def _log(self, step: str, message: str) -> None:
         self.logs.append({"step": step, "message": message})

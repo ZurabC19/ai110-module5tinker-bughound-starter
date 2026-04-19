@@ -1,109 +1,68 @@
-# 🐶 BugHound
+---
 
-BugHound is a small, agent-style debugging tool. It analyzes a Python code snippet, proposes a fix, and runs basic reliability checks before deciding whether the fix is safe to apply automatically.
+## 📝 Assignment Reflection
+
+### Part 1: Agentic Workflow
+
+BugHound follows a simple loop:
+plan → analyze → fix → assess risk → decide whether to apply.
+
+- Problems are found in `analyze()`  
+- Fixes are created in `propose_fix()`  
+- Safety is checked in `risk_assessor.py`  
+- If something goes wrong, it falls back to heuristics  
+
+One issue I noticed was that in heuristic mode it still said it was using the LLM, then fell back. This was misleading and showed the system wasn’t correctly separating offline and AI modes.
 
 ---
 
-## What BugHound Does
+### Part 2: AI Integration
 
-Given a short Python snippet, BugHound:
+When using Gemini mode, the system attempted to use the AI, but the output wasn’t always usable. The analyzer sometimes returned invalid JSON and the fixer sometimes returned empty output, so the system had to fall back to heuristics.
 
-1. **Analyzes** the code for potential issues  
-   - Uses heuristics in offline mode  
-   - Uses Gemini when API access is enabled  
-
-2. **Proposes a fix**  
-   - Either heuristic-based or LLM-generated  
-   - Attempts minimal, behavior-preserving changes  
-
-3. **Assesses risk**  
-   - Scores the fix  
-   - Flags high-risk changes  
-   - Decides whether the fix should be auto-applied or reviewed by a human  
-
-4. **Shows its work**  
-   - Displays detected issues  
-   - Shows a diff between original and fixed code  
-   - Logs each agent step
+To improve this, I modified `_can_call_llm()` so that `MockClient` is not treated as a real LLM. This made heuristic mode behave correctly and removed fake fallback behavior.
 
 ---
 
-## Setup
+### Part 3: Risk Assessment Change
 
-### 1. Create a virtual environment (recommended)
+I added a rule to penalize fixes that introduce new imports.
 
-```bash
-python -m venv .venv
-source .venv/bin/activate   # macOS/Linux
-# or
-.venv\Scripts\activate      # Windows
-```
+This matters because adding imports changes dependencies and behavior, even if the fix looks small.
 
-### 2. Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
+After this change, the risk score decreased (from 30 to 20 in testing), making the system more cautious about auto-applying fixes.
 
 ---
 
-## Running in Offline (Heuristic) Mode
+### Part 4: Guardrails and Testing
 
-No API key required.
+One failure mode was that the system didn’t treat new imports as risky.
 
-```bash
-streamlit run bughound_app.py
-```
+I added a guardrail in the risk assessment logic to reduce the score when new imports are introduced.
 
-In the sidebar, select:
+I also added a test to confirm:
+- the score decreases when imports are added  
+- the correct reason appears  
 
-* **Model mode:** Heuristic only (no API)
+I updated an existing test as well because after fixing `_can_call_llm()`, the system no longer logs fake LLM fallback behavior.
 
-This mode uses simple pattern-based rules and is useful for testing the workflow without network access.
-
----
-
-## Running with Gemini
-
-### 1. Set up your API key
-
-Copy the example file:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` and add your Gemini API key:
-
-```text
-GEMINI_API_KEY=your_real_key_here
-```
-
-### 2. Run the app
-
-```bash
-streamlit run bughound_app.py
-```
-
-In the sidebar, select:
-
-* **Model mode:** Gemini (requires API key)
-* Choose a Gemini model and temperature
-
-BugHound will now use Gemini for analysis and fix generation, while still applying local reliability checks.
+All tests passed after these changes.
 
 ---
 
-## Running Tests
+### Part 5: Reflection
 
-Tests focus on **reliability logic** and **agent behavior**, not the UI.
+Heuristic mode was more reliable and predictable.
 
-```bash
-pytest
-```
+Gemini mode had potential but was less stable because the outputs were sometimes malformed or incomplete.
 
-You should see tests covering:
+The system should defer to humans when:
+- risk is high  
+- behavior changes  
+- new imports are added  
 
-* Risk scoring and guardrails
-* Heuristic fallbacks when LLM output is invalid
-* End-to-end agent workflow shape
+The most useful improvements were:
+- fixing LLM detection so MockClient isn’t treated like a real AI  
+- adding a rule to penalize new imports  
+
+These changes made the system more consistent and safer.

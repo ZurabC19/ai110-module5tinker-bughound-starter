@@ -46,3 +46,22 @@ def test_missing_return_is_penalized():
     )
     assert risk["score"] < 100
     assert any("Return" in r or "return" in r for r in risk["reasons"])
+def test_new_imports_are_penalized():
+    original = """def greet(name):
+    print("Hello", name)
+    return True
+"""
+    fixed = """import logging
+
+def greet(name):
+    logging.info("Hello %s", name)
+    return True
+"""
+    risk = assess_risk(
+        original_code=original,
+        fixed_code=fixed,
+        issues=[{"type": "Code Quality", "severity": "Low", "msg": "print"}],
+    )
+
+    assert risk["score"] == 85
+    assert any("New imports were introduced" in r for r in risk["reasons"])
