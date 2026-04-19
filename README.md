@@ -8,11 +8,11 @@ A small, agent-style debugging tool. It looks at Python code, suggests fixes, an
 
 Given a Python snippet, BugHound:
 
-1. **Analyzes the code** — uses heuristics in offline mode, or Gemini if enabled
-2. **Proposes a fix** — tries to keep changes minimal
-3. **Checks risk** — scores how safe the fix is and flags risky changes
-4. **Decides what to do** — auto-applies if safe, otherwise leaves it for a human
-5. **Shows results** — issues found, fixed code, diff, and agent trace
+1. **Analyzes the code** - uses heuristics in offline mode, or Gemini if enabled
+2. **Proposes a fix** - tries to keep changes minimal
+3. **Checks risk** - scores how safe the fix is and flags risky changes
+4. **Decides what to do** - auto-applies if safe, otherwise leaves it for a human
+5. **Shows results** - issues found, fixed code, diff, and agent trace
 
 ---
 
@@ -32,8 +32,8 @@ streamlit run bughound_app.py
 
 **Modes:**
 
-- **Heuristic only** — no API needed
-- **Gemini** — requires an API key in `.env`:
+- **Heuristic only** - no API needed
+- **Gemini** - requires an API key in `.env`:
 
 ```
 GEMINI_API_KEY=your_key_here
@@ -63,7 +63,7 @@ One issue I noticed was that heuristic mode still logged that it was using the L
 
 ### Part 2: AI Integration
 
-In Gemini mode, the AI didn't always return valid JSON — sometimes the output was empty or malformed, so the system had to fall back to heuristics. I fixed this by updating `_can_call_llm()` so `MockClient` is no longer treated as a real LLM. This made heuristic mode behave correctly and removed the fake fallback logs.
+In Gemini mode, the AI didn't always return valid JSON - sometimes the output was empty or malformed, so the system had to fall back to heuristics. I fixed this by updating `_can_call_llm()` so `MockClient` is no longer treated as a real LLM. This made heuristic mode behave correctly and removed the fake fallback logs.
 
 ### Part 3: Risk Assessment Change
 
@@ -82,7 +82,7 @@ All tests passed.
 
 ### Part 5: Reflection
 
-Heuristic mode was more reliable and consistent. Gemini mode had potential but was less stable — outputs were sometimes invalid.
+Heuristic mode was more reliable and consistent. Gemini mode had potential but was less stable - outputs were sometimes invalid.
 
 The system should **not** auto-fix when:
 
